@@ -1,20 +1,21 @@
-#Consider the node image from docker hub
-FROM node:20
+FROM node:20-alpine AS builder
 
-#create working directory
 WORKDIR /app
 
-#Copy all dependencies to app folder
 COPY package*.json ./
 
-# Install node modules
-RUN npm install
+RUN npm ci --silent
 
-#Copy all other files of the application
 COPY . .
 
-#Port number at which application is running in container
-EXPOSE 5173
+RUN npm run build
 
-#Run the application
-CMD ["npm","run","dev"]
+FROM nginx:stable-alpine
+
+RUN rm -rf /usr/share/nginx/html/*
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
